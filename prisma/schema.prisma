@@ -13,3 +13,268 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+
+  funds             Fund[]
+  incomes           Income[]
+  expenses          Expense[]
+  debts             Debt[]
+  savingsChallenges SavingsChallenge[]
+  transactions      Transaction[]
+  savingsEntries    SavingsEntry[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@map("verification")
+}
+
+enum FundType {
+  CASH
+  BANK
+  E_WALLET
+  OTHER
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  DEBT // creation/settlement of a debt (borrowed or lent)
+  SAVING // deposit to savings challenge
+  TRANSFER // transfer between two funds
+}
+
+enum DebtDirection {
+  BORROWED // user borrowed money (user owes)
+  LENT // user lent money (user is owed)
+}
+
+enum DebtStatus {
+  ACTIVE
+  PARTIALLY_PAID
+  PAID
+  CANCELLED
+}
+
+model Fund {
+  id     String   @id @default(uuid())
+  user   User     @relation(fields: [userId], references: [id])
+  userId String
+  name   String
+  type   FundType @default(BANK)
+
+  // Keep a cached balance for quick display; can be derived from transactions if you prefer
+  balance   Decimal  @default("0.0")
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relations
+  transactions      Transaction[]  @relation("FundTransactions")
+  incomingTransfers Transaction[]  @relation("IncomingTransfers")
+  outgoingTransfers Transaction[]  @relation("OutgoingTransfers")
+  incomes           Income[]
+  expenses          Expense[]
+  debts             Debt[]
+  savingsEntries    SavingsEntry[]
+
+  @@index([userId])
+}
+
+model Transaction {
+  id          String          @id @default(uuid())
+  user        User            @relation(fields: [userId], references: [id])
+  userId      String
+  type        TransactionType
+  amount      Decimal
+  description String?
+  timestamp   DateTime        @default(now())
+
+  // Primary fund affected by this transaction (e.g., from where money was deducted or to where it was added)
+  fund   Fund   @relation("FundTransactions", fields: [fundId], references: [id])
+  fundId String
+
+  // For transfers: optional counterparty fund
+  counterpartyFund   Fund?   @relation("IncomingTransfers", fields: [counterpartyFundId], references: [id])
+  counterpartyFundId String?
+
+  // For transfers: optional counterparty fund
+  counterpartyOutGoingFund   Fund?   @relation("OutgoingTransfers", fields: [counterpartyOutGoingFundId], references: [id])
+  counterpartyOutGoingFundId String?
+
+  // Polymorphic links to domain records (one of these will be set)
+  income   Income? @relation(fields: [incomeId], references: [id])
+  incomeId String? @unique
+
+  expense   Expense? @relation(fields: [expenseId], references: [id])
+  expenseId String?  @unique
+
+  debt   Debt?   @relation(fields: [debtId], references: [id])
+  debtId String?
+
+  savingsEntry   SavingsEntry? @relation(fields: [savingsEntryId], references: [id])
+  savingsEntryId String?       @unique
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([fundId])
+  @@index([timestamp])
+}
+
+model Income {
+  id          String       @id @default(uuid())
+  user        User         @relation(fields: [userId], references: [id])
+  userId      String
+  source      String
+  amount      Decimal
+  date        DateTime
+  fund        Fund         @relation(fields: [fundId], references: [id])
+  fundId      String
+  notes       String?
+  // transaction created when income is logged
+  transaction Transaction?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([fundId])
+}
+
+model Expense {
+  id            String       @id @default(uuid())
+  user          User         @relation(fields: [userId], references: [id])
+  userId        String
+  name          String
+  category      String
+  amount        Decimal
+  date          DateTime
+  fund          Fund         @relation(fields: [fundId], references: [id])
+  fundId        String
+  paymentMethod String?
+  notes         String?
+  transaction   Transaction?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([fundId])
+  @@index([date])
+}
+
+model Debt {
+  id          String        @id @default(uuid())
+  user        User          @relation(fields: [userId], references: [id])
+  userId      String
+  person      String // person or entity name
+  direction   DebtDirection
+  principal   Decimal
+  outstanding Decimal // remaining amount, can be updated as payments happen
+  date        DateTime
+  dueDate     DateTime?
+  status      DebtStatus    @default(ACTIVE)
+  notes       String?
+
+  // fund affected when debt is created (e.g., borrowed: fund increases; lent: fund decreases)
+  fund   Fund?   @relation(fields: [fundId], references: [id])
+  fundId String?
+
+  // transactions for repayments/settlements are separate Transaction rows linked back via Transaction.debtId
+  transactions Transaction[]
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([person])
+  @@index([status])
+}
+
+model SavingsChallenge {
+  id          String    @id @default(uuid())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  name        String
+  goalAmount  Decimal
+  savedAmount Decimal   @default("0.0") // cached from entries
+  startDate   DateTime
+  endDate     DateTime?
+  notes       String?
+
+  entries   SavingsEntry[]
+  createdAt DateTime       @default(now())
+
+  @@index([userId])
+}
+
+model SavingsEntry {
+  id          String           @id @default(uuid())
+  challenge   SavingsChallenge @relation(fields: [challengeId], references: [id])
+  challengeId String
+  user        User             @relation(fields: [userId], references: [id])
+  userId      String
+  amount      Decimal
+  date        DateTime
+  fund        Fund             @relation(fields: [fundId], references: [id])
+  fundId      String
+  notes       String?
+  transaction Transaction?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([challengeId])
+  @@index([fundId])
+}

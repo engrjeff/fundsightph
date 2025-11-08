@@ -1,6 +1,4 @@
 import * as React from "react"
-import { mergeProps } from "@base-ui-components/react/merge-props"
-import { useRender } from "@base-ui-components/react/use-render"
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -41,36 +39,30 @@ function PaginationItem({ ...props }: React.ComponentProps<"li">) {
 
 type PaginationLinkProps = {
   isActive?: boolean
-  size?: React.ComponentProps<typeof Button>["size"]
-} & useRender.ComponentProps<"a">
+} & Pick<React.ComponentProps<typeof Button>, "size"> &
+  React.ComponentProps<"a">
 
 function PaginationLink({
   className,
   isActive,
   size = "icon",
-  render,
   ...props
 }: PaginationLinkProps) {
-  const defaultProps = {
-    "aria-current": isActive ? ("page" as const) : undefined,
-    "data-slot": "pagination-link",
-    "data-active": isActive,
-    className: render
-      ? className
-      : cn(
-          buttonVariants({
-            variant: isActive ? "outline" : "ghost",
-            size,
-          }),
-          className
-        ),
-  }
-
-  return useRender({
-    defaultTagName: "a",
-    render,
-    props: mergeProps<"a">(defaultProps, props),
-  })
+  return (
+    <a
+      aria-current={isActive ? "page" : undefined}
+      data-slot="pagination-link"
+      data-active={isActive}
+      className={cn(
+        buttonVariants({
+          variant: isActive ? "outline" : "ghost",
+          size,
+        }),
+        className
+      )}
+      {...props}
+    />
+  )
 }
 
 function PaginationPrevious({
@@ -81,11 +73,11 @@ function PaginationPrevious({
     <PaginationLink
       aria-label="Go to previous page"
       size="default"
-      className={cn("max-sm:aspect-square max-sm:p-0", className)}
+      className={cn("gap-1 px-2.5 sm:pl-2.5", className)}
       {...props}
     >
-      <ChevronLeftIcon className="sm:-ms-1" />
-      <span className="max-sm:hidden">Previous</span>
+      <ChevronLeftIcon />
+      <span className="hidden sm:block">Previous</span>
     </PaginationLink>
   )
 }
@@ -98,11 +90,11 @@ function PaginationNext({
     <PaginationLink
       aria-label="Go to next page"
       size="default"
-      className={cn("max-sm:aspect-square max-sm:p-0", className)}
+      className={cn("gap-1 px-2.5 sm:pr-2.5", className)}
       {...props}
     >
-      <span className="max-sm:hidden">Next</span>
-      <ChevronRightIcon className="sm:-me-1" />
+      <span className="hidden sm:block">Next</span>
+      <ChevronRightIcon />
     </PaginationLink>
   )
 }
@@ -115,7 +107,7 @@ function PaginationEllipsis({
     <span
       aria-hidden
       data-slot="pagination-ellipsis"
-      className={cn("flex min-w-7 justify-center", className)}
+      className={cn("flex size-9 items-center justify-center", className)}
       {...props}
     >
       <MoreHorizontalIcon className="size-4" />
