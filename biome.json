@@ -28,7 +28,8 @@
     "rules": {
       "recommended": true,
       "suspicious": {
-        "noUnknownAtRules": "off"
+        "noUnknownAtRules": "off",
+        "noArrayIndexKey": "off"
       },
       "a11y": {
         "noStaticElementInteractions": "off",

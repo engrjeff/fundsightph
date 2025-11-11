@@ -115,9 +115,10 @@ model Fund {
   userId String
   name   String
   type   FundType @default(BANK)
+  icon   String
 
   // Keep a cached balance for quick display; can be derived from transactions if you prefer
-  balance   Decimal  @default("0.0")
+  balance   Decimal  @default(0.0)
   notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -131,6 +132,7 @@ model Fund {
   debts             Debt[]
   savingsEntries    SavingsEntry[]
 
+  @@unique([userId, name])
   @@index([userId])
 }
 
@@ -190,6 +192,7 @@ model Income {
 
   createdAt DateTime @default(now())
 
+  @@unique([userId, source])
   @@index([userId])
   @@index([fundId])
 }
@@ -221,6 +224,7 @@ model Debt {
   userId      String
   person      String // person or entity name
   direction   DebtDirection
+  name        String
   principal   Decimal
   outstanding Decimal // remaining amount, can be updated as payments happen
   date        DateTime
@@ -237,6 +241,7 @@ model Debt {
 
   createdAt DateTime @default(now())
 
+  @@unique([userId, name])
   @@index([userId])
   @@index([person])
   @@index([status])
@@ -248,7 +253,7 @@ model SavingsChallenge {
   userId      String
   name        String
   goalAmount  Decimal
-  savedAmount Decimal   @default("0.0") // cached from entries
+  savedAmount Decimal   @default(0.0) // cached from entries
   startDate   DateTime
   endDate     DateTime?
   notes       String?
@@ -256,6 +261,7 @@ model SavingsChallenge {
   entries   SavingsEntry[]
   createdAt DateTime       @default(now())
 
+  @@unique([userId, name])
   @@index([userId])
 }
 

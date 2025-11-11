@@ -1,10 +1,10 @@
-import { auth } from "@clerk/nextjs/server";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import {
   createSafeActionClient,
   DEFAULT_SERVER_ERROR_MESSAGE,
 } from "next-safe-action";
 import * as z from "zod";
+import { getSession } from "./get-session";
 
 class ActionError extends Error {}
 
@@ -13,6 +13,10 @@ export const actionClient = createSafeActionClient({
     console.error("Action error:", e.message);
 
     if (e instanceof PrismaClientKnownRequestError) {
+      if (e.code === "P2002") {
+        const message = `Cannot have duplicate ${e.meta?.modelName}`;
+        return message;
+      }
       return e.message;
     }
 
@@ -35,9 +39,9 @@ export const actionClient = createSafeActionClient({
 });
 
 export const authActionClient = actionClient.use(async ({ next }) => {
-  const user = await auth();
+  const session = await getSession();
 
-  if (!user?.userId) throw new Error("Session not found.");
+  if (!session?.user) throw new Error("Unauthorized.");
 
-  return next({ ctx: { user } });
+  return next({ ctx: { user: session.user } });
 });

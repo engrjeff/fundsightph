@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEventHandler, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -47,7 +48,10 @@ export function SignInForm() {
         onError: (ctx) => {
           // display the error message
           setLoading(false);
-          alert(ctx.error.message);
+          toast.error(ctx.error.message, {
+            richColors: true,
+            position: "top-center",
+          });
         },
       },
     );

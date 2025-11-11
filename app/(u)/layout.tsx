@@ -6,7 +6,7 @@ function UserPagesLayout({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>{children}</SidebarInset>
+      <SidebarInset className="p-4">{children}</SidebarInset>
     </SidebarProvider>
   );
 }

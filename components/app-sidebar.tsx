@@ -1,12 +1,12 @@
 "use client";
 
 import {
+  ArrowLeftRightIcon,
   BoxIcon,
   CoinsIcon,
-  PackageIcon,
+  HandCoinsIcon,
   SquareTerminal,
   TrendingDownIcon,
-  TrendingUpDownIcon,
   TrendingUpIcon,
 } from "lucide-react";
 import type * as React from "react";
@@ -56,12 +56,12 @@ const data = {
     {
       title: "Transactions",
       url: "/transactions",
-      icon: TrendingUpDownIcon,
+      icon: ArrowLeftRightIcon,
     },
     {
       title: "Savings",
       url: "/savings",
-      icon: PackageIcon,
+      icon: HandCoinsIcon,
     },
   ],
 };
@@ -93,7 +93,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
